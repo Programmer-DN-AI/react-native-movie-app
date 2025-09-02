@@ -1,11 +1,13 @@
+import { ResizeMode, Video } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
   
@@ -30,37 +32,85 @@ import useFetch from "@/services/usefetch";
   const Details = () => {
     const router = useRouter();
     const { id } = useLocalSearchParams();
-  
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [videoRef, setVideoRef] = useState<Video | null>(null);
+
     const { data: movie, loading } = useFetch(() =>
       fetchMovieDetails(id as string)
     );
-  
+
+    const handlePlayVideo = () => {
+      setIsVideoPlaying(true);
+    };
+
+    const handleVideoEnd = () => {
+      setIsVideoPlaying(false);
+    };
+
+    const handleVideoError = (error: any) => {
+      console.log("Video error:", error);
+    };
+
     if (loading)
       return (
         <SafeAreaView className="bg-primary flex-1">
           <ActivityIndicator />
         </SafeAreaView>
       );
-  
+
     return (
       <View className="bg-primary flex-1">
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
           <View>
-            <Image
-              source={{
-                uri: `https://image.tmdb.org/t/p/w500${movie?.poster_path}`,
-              }}
-              className="w-full h-[550px]"
-              resizeMode="stretch"
-            />
-  
-            <TouchableOpacity className="absolute bottom-5 right-5 rounded-full size-14 bg-white flex items-center justify-center">
+            {isVideoPlaying ? (
+              <View className="w-full h-[550px] bg-black">
+                <Video
+                  ref={setVideoRef}
+                  source={{ 
+                    uri: "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4"
+                  }}
+                  className="w-full h-full"
+                  resizeMode={ResizeMode.CONTAIN}
+                  useNativeControls
+                  isLooping={false}
+                  shouldPlay={true}
+                  onError={handleVideoError}
+                  onPlaybackStatusUpdate={(status) => {
+                    console.log("Video status:", status);
+                    if (status.isLoaded && status.didJustFinish) {
+                      handleVideoEnd();
+                    }
+                  }}
+                />
+                <TouchableOpacity 
+                  className="absolute top-4 right-4 bg-black/50 rounded-full size-10 flex items-center justify-center"
+                  onPress={() => setIsVideoPlaying(false)}
+                >
+                  <Text className="text-white text-xl">×</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
               <Image
-                source={icons.play}
-                className="w-6 h-7 ml-1"
+                source={{
+                  uri: `https://image.tmdb.org/t/p/w500${movie?.poster_path}`,
+                }}
+                className="w-full h-[550px]"
                 resizeMode="stretch"
               />
-            </TouchableOpacity>
+            )}
+
+            {!isVideoPlaying && (
+              <TouchableOpacity 
+                className="absolute bottom-5 right-5 rounded-full size-14 bg-white flex items-center justify-center"
+                onPress={handlePlayVideo}
+              >
+                <Image
+                  source={icons.play}
+                  className="w-6 h-7 ml-1"
+                  resizeMode="stretch"
+                />
+              </TouchableOpacity>
+            )}
           </View>
   
           <View className="flex-col items-start justify-center mt-5 px-5">
